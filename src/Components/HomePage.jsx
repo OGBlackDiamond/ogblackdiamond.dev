@@ -1,10 +1,28 @@
+import { useState, useEffect } from "react"
 /* eslint-disable no-unused-vars */
-import { motion } from "motion/react"
+import { motion, AnimatePresence } from "motion/react"
 /* eslint-enable no-unused-vars */
-import { FaGithub, FaLinkedin } from "react-icons/fa"
+import { FaGithub, FaLinkedin, FaChevronDown } from "react-icons/fa"
 import SnakeGame from "./SnakeGame.jsx"
+import TechStack from "./TechStack.jsx"
 
 function HomePage() {
+    const [blurAmount, setBlurAmount] = useState(0)
+    const [scrolled, setScrolled] = useState(false)
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollY = window.scrollY
+            const viewportHeight = window.innerHeight
+            const blur = Math.min(15, (scrollY / viewportHeight) * 15)
+            setBlurAmount(blur)
+            if (scrollY > 40) setScrolled(true)
+        }
+
+        window.addEventListener("scroll", handleScroll, { passive: true })
+        return () => window.removeEventListener("scroll", handleScroll)
+    }, [])
+
     return (
         <div style={{
             position: "relative",
@@ -14,7 +32,7 @@ function HomePage() {
             fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif"
         }}>
             {/* Snake game background */}
-            <SnakeGame />
+            <SnakeGame blurAmount={blurAmount} />
             
             {/* Content overlay */}
             <motion.div
@@ -172,6 +190,44 @@ function HomePage() {
                     </motion.a>
                 </motion.section>
             </motion.div>
+            
+            {/* Tech Stack Section */}
+            <TechStack />
+
+            {/* Scroll hint */}
+            <AnimatePresence>
+                {!scrolled && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ delay: 1.5, duration: 0.8 }}
+                        style={{
+                            position: "fixed",
+                            bottom: "32px",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            zIndex: 20,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "6px",
+                            pointerEvents: "none"
+                        }}
+                    >
+                        <span style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                            scroll
+                        </span>
+                        <motion.div
+                            animate={{ y: [0, 5, 0] }}
+                            transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                            style={{ color: "rgba(255,255,255,0.2)" }}
+                        >
+                            <FaChevronDown size={14} />
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }

@@ -1,207 +1,256 @@
-import { useState, useEffect, useCallback } from "react"
-/* eslint-disable no-unused-vars */
-import { motion } from "motion/react"
-/* eslint-enable no-unused-vars */
-import SnakeBody from "./SnakeBody.jsx"
+import { useState, useEffect, useCallback, useRef } from "react"
 
-function SnakeGame() {
+function SnakeGame({ blurAmount = 0 }) {
     const CELL_SIZE = 25
-    const PADDING = 2 // Grid cells of padding from edges
-    const GRID_WIDTH = Math.floor(window.innerWidth / CELL_SIZE)
-    const GRID_HEIGHT = Math.floor(window.innerHeight / CELL_SIZE)
-    
-    // Initialize snake at center of screen
-    const centerX = Math.floor(GRID_WIDTH / 2)
-    const centerY = Math.floor(GRID_HEIGHT / 2)
-    
-    const [snake, setSnake] = useState([
-        [centerX, centerY],
-        [centerX - 1, centerY],
-        [centerX - 2, centerY],
-        [centerX - 3, centerY],
-        [centerX - 4, centerY]
-    ])
-    
-    const [apple, setApple] = useState(null)
-    const [direction, setDirection] = useState("right")
-    const [justGrew, setJustGrew] = useState(false)
-    
-    // Spawn apple at random position (not in snake)
-    const spawnApple = useCallback((currentSnake) => {
-        let newApple
-        let validPosition = false
-        
-        while (!validPosition) {
-            newApple = {
-                x: Math.floor(Math.random() * (GRID_WIDTH - PADDING * 2)) + PADDING,
-                y: Math.floor(Math.random() * (GRID_HEIGHT - PADDING * 2)) + PADDING
-            }
-            
-            // Check if apple is not inside snake
-            validPosition = !currentSnake.some(segment => 
-                segment[0] === newApple.x && segment[1] === newApple.y
-            )
+    const PADDING = 2
+
+    const canvasRef = useRef(null)
+
+    // Use refs for all game state so the rAF loop always sees fresh values
+    // without causing re-renders on every tick.
+    const snakeRef = useRef(null)
+    const appleRef = useRef(null)
+    const directionRef = useRef("right")
+    const gridRef = useRef({ width: 0, height: 0 })
+
+    // We still need a tiny bit of React state to trigger the initial mount draw
+    const [ready, setReady] = useState(false)
+
+    // ---------- helpers ----------
+
+    const makeGrid = useCallback(() => {
+        return {
+            width: Math.floor(window.innerWidth / CELL_SIZE),
+            height: Math.floor(window.innerHeight / CELL_SIZE)
         }
-        
-        return newApple
-    }, [GRID_WIDTH, GRID_HEIGHT])
-    
-    // Initialize apple
-    useEffect(() => {
-        setApple(spawnApple(snake))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
-    
-    // Check collision with snake body
-    const isCollision = useCallback((pos, snakeBody) => {
-        return snakeBody.some(segment => segment[0] === pos[0] && segment[1] === pos[1])
+
+    const spawnApple = useCallback((currentSnake, grid) => {
+        const { width, height } = grid
+        let pos
+        do {
+            pos = {
+                x: Math.floor(Math.random() * (width - PADDING * 2)) + PADDING,
+                y: Math.floor(Math.random() * (height - PADDING * 2)) + PADDING
+            }
+        } while (currentSnake.some(s => s[0] === pos.x && s[1] === pos.y))
+        return pos
     }, [])
-    
-    // Get next direction using greedy pathfinding
-    const getNextDirection = useCallback((head, applePos, snakeBody) => {
-        if (!applePos) return direction
-        
+
+    const makeSnake = useCallback((grid) => {
+        const cx = Math.floor(grid.width / 2)
+        const cy = Math.floor(grid.height / 2)
+        return [
+            [cx,     cy],
+            [cx - 1, cy],
+            [cx - 2, cy],
+            [cx - 3, cy],
+            [cx - 4, cy]
+        ]
+    }, [])
+
+    const getNextDirection = useCallback((head, apple, snake, currentDir, grid) => {
+        const { width, height } = grid
         const moves = [
-            { dir: "up", pos: [head[0], head[1] - 1] },
-            { dir: "down", pos: [head[0], head[1] + 1] },
-            { dir: "left", pos: [head[0] - 1, head[1]] },
-            { dir: "right", pos: [head[0] + 1, head[1]] }
+            { dir: "up",    pos: [head[0],     head[1] - 1] },
+            { dir: "down",  pos: [head[0],     head[1] + 1] },
+            { dir: "left",  pos: [head[0] - 1, head[1]    ] },
+            { dir: "right", pos: [head[0] + 1, head[1]    ] }
         ]
-        
-        // Filter out moves that go out of bounds or into padding
-        const validMoves = moves.filter(move => {
-            const x = move.pos[0]
-            const y = move.pos[1]
-            return x >= PADDING && x < GRID_WIDTH - PADDING && 
-                   y >= PADDING && y < GRID_HEIGHT - PADDING
-        })
-        
-        // Calculate Manhattan distance for each valid move
-        validMoves.forEach(move => {
-            move.distance = Math.abs(move.pos[0] - applePos.x) + Math.abs(move.pos[1] - applePos.y)
-        })
-        
-        // Sort by distance (closest first)
-        validMoves.sort((a, b) => a.distance - b.distance)
-        
-        // Pick first move that doesn't collide with snake body (excluding tail)
-        const bodyWithoutTail = snakeBody.slice(0, -1)
-        for (let move of validMoves) {
-            if (!isCollision(move.pos, bodyWithoutTail)) {
-                return move.dir
-            }
+
+        const inBounds = ([x, y]) =>
+            x >= PADDING && x < width - PADDING &&
+            y >= PADDING && y < height - PADDING
+
+        const noCollide = (pos) => !snake.some(s => s[0] === pos[0] && s[1] === pos[1])
+
+        const valid = moves
+            .filter(m => inBounds(m.pos) && noCollide(m.pos))
+            .map(m => ({
+                ...m,
+                dist: Math.abs(m.pos[0] - apple.x) + Math.abs(m.pos[1] - apple.y)
+            }))
+            .sort((a, b) => a.dist - b.dist)
+
+        if (valid.length > 0) return valid[0].dir
+
+        // fallback: keep going if possible
+        const ahead = {
+            up:    [head[0],     head[1] - 1],
+            down:  [head[0],     head[1] + 1],
+            left:  [head[0] - 1, head[1]    ],
+            right: [head[0] + 1, head[1]    ]
+        }[currentDir]
+        if (inBounds(ahead) && noCollide(ahead)) return currentDir
+
+        // last resort: any safe move
+        const any = moves.find(m => inBounds(m.pos) && noCollide(m.pos))
+        return any ? any.dir : currentDir
+    }, [])
+
+    // ---------- draw ----------
+
+    const draw = useCallback(() => {
+        const canvas = canvasRef.current
+        if (!canvas) return
+        const ctx = canvas.getContext("2d")
+        const snake = snakeRef.current
+        const apple = appleRef.current
+        const { width, height } = gridRef.current
+
+        const W = width  * CELL_SIZE
+        const H = height * CELL_SIZE
+
+        // Clear
+        ctx.clearRect(0, 0, W, H)
+
+        // Grid lines
+        ctx.strokeStyle = "rgba(120, 180, 130, 0.08)"
+        ctx.lineWidth = 1
+        for (let x = 0; x <= width; x++) {
+            ctx.beginPath()
+            ctx.moveTo(x * CELL_SIZE, 0)
+            ctx.lineTo(x * CELL_SIZE, H)
+            ctx.stroke()
         }
-        
-        // Fallback: continue current direction if it's still valid
-        const currentMoveMap = {
-            "up": [head[0], head[1] - 1],
-            "down": [head[0], head[1] + 1],
-            "left": [head[0] - 1, head[1]],
-            "right": [head[0] + 1, head[1]]
+        for (let y = 0; y <= height; y++) {
+            ctx.beginPath()
+            ctx.moveTo(0, y * CELL_SIZE)
+            ctx.lineTo(W, y * CELL_SIZE)
+            ctx.stroke()
         }
-        const currentNextPos = currentMoveMap[direction]
-        if (currentNextPos && 
-            currentNextPos[0] >= PADDING && currentNextPos[0] < GRID_WIDTH - PADDING &&
-            currentNextPos[1] >= PADDING && currentNextPos[1] < GRID_HEIGHT - PADDING &&
-            !isCollision(currentNextPos, bodyWithoutTail)) {
-            return direction
-        }
-        
-        // Last resort: pick any possible move in any direction that doesn't collide
-        const allMoves = [
-            { dir: "up", pos: [head[0], head[1] - 1] },
-            { dir: "down", pos: [head[0], head[1] + 1] },
-            { dir: "left", pos: [head[0] - 1, head[1]] },
-            { dir: "right", pos: [head[0] + 1, head[1]] }
-        ]
-        for (let move of allMoves) {
-            const x = move.pos[0]
-            const y = move.pos[1]
-            if (
-                x >= PADDING && x < GRID_WIDTH - PADDING &&
-                y >= PADDING && y < GRID_HEIGHT - PADDING &&
-                !isCollision(move.pos, bodyWithoutTail)
-            ) {
-                return move.dir
-            }
-        }
-        
-        return direction
-    }, [direction, GRID_WIDTH, GRID_HEIGHT, PADDING, isCollision])
-    
-    // Game loop
-    useEffect(() => {
-        if (!apple) return
-        
-        const gameLoop = setInterval(() => {
-            setSnake(prevSnake => {
-                const head = prevSnake[0]
-                
-                // Get next direction
-                const nextDir = getNextDirection(head, apple, prevSnake)
-                setDirection(nextDir)
-                
-                // Calculate new head position
-                let newHead = [...head]
-                switch (nextDir) {
-                    case "up":
-                        newHead = [head[0], head[1] - 1]
-                        break
-                    case "down":
-                        newHead = [head[0], head[1] + 1]
-                        break
-                    case "left":
-                        newHead = [head[0] - 1, head[1]]
-                        break
-                    case "right":
-                        newHead = [head[0] + 1, head[1]]
-                        break
-                }
-                
-                // Check for death conditions
-                const hitWall = newHead[0] < PADDING || newHead[0] >= GRID_WIDTH - PADDING ||
-                               newHead[1] < PADDING || newHead[1] >= GRID_HEIGHT - PADDING
-                const hitSelf = prevSnake.some(segment => segment[0] === newHead[0] && segment[1] === newHead[1])
-                
-                if (hitWall || hitSelf) {
-                    // Reset snake to center
-                    const newCenterX = Math.floor(GRID_WIDTH / 2)
-                    const newCenterY = Math.floor(GRID_HEIGHT / 2)
-                    const resetSnake = [
-                        [newCenterX, newCenterY],
-                        [newCenterX - 1, newCenterY],
-                        [newCenterX - 2, newCenterY],
-                        [newCenterX - 3, newCenterY],
-                        [newCenterX - 4, newCenterY]
-                    ]
-                    setDirection("right")
-                    setApple(spawnApple(resetSnake))
-                    return resetSnake
-                }
-                
-                // Check if apple is eaten
-                const ateApple = newHead[0] === apple.x && newHead[1] === apple.y
-                
-                let newSnake
-                if (ateApple) {
-                    // Grow snake (don't remove tail)
-                    newSnake = [newHead, ...prevSnake]
-                    // Spawn new apple
-                    setApple(spawnApple(newSnake))
-                    setJustGrew(true)
-                    setTimeout(() => setJustGrew(false), 150)
+
+        // Snake segments
+        if (snake) {
+            const r = CELL_SIZE * 0.15  // corner radius
+            snake.forEach((seg, i) => {
+                const px = seg[0] * CELL_SIZE
+                const py = seg[1] * CELL_SIZE
+                const s  = CELL_SIZE
+
+                // Filled cell with rounded corners
+                ctx.beginPath()
+                ctx.moveTo(px + r, py)
+                ctx.lineTo(px + s - r, py)
+                ctx.arcTo(px + s, py,     px + s, py + r,     r)
+                ctx.lineTo(px + s, py + s - r)
+                ctx.arcTo(px + s, py + s, px + s - r, py + s, r)
+                ctx.lineTo(px + r, py + s)
+                ctx.arcTo(px,     py + s, px,     py + s - r, r)
+                ctx.lineTo(px,     py + r)
+                ctx.arcTo(px,     py,     px + r, py,         r)
+                ctx.closePath()
+
+                // Head is brighter
+                if (i === 0) {
+                    ctx.fillStyle = "rgba(60, 130, 80, 0.85)"
                 } else {
-                    // Move snake (remove tail)
-                    newSnake = [newHead, ...prevSnake.slice(0, -1)]
+                    ctx.fillStyle = "rgba(45, 95, 63, 0.7)"
                 }
-                
-                return newSnake
+                ctx.fill()
+
+                ctx.strokeStyle = "rgba(60, 120, 80, 0.5)"
+                ctx.lineWidth = 1
+                ctx.stroke()
+
+                // Glow for head only (cheap single shadow)
+                if (i === 0) {
+                    ctx.shadowColor  = "rgba(80, 255, 130, 0.45)"
+                    ctx.shadowBlur   = 14
+                    ctx.fill()
+                    ctx.shadowBlur   = 0
+                    ctx.shadowColor  = "transparent"
+                }
             })
-        }, 25)
-        
-        return () => clearInterval(gameLoop)
-    }, [apple, direction, GRID_WIDTH, GRID_HEIGHT, PADDING, getNextDirection, spawnApple])
-    
+        }
+
+        // Apple
+        if (apple) {
+            const cx = apple.x * CELL_SIZE + CELL_SIZE / 2
+            const cy = apple.y * CELL_SIZE + CELL_SIZE / 2
+            const rad = CELL_SIZE * 0.42
+
+            ctx.shadowColor = "rgba(255, 71, 87, 0.55)"
+            ctx.shadowBlur  = 12
+            ctx.beginPath()
+            ctx.arc(cx, cy, rad, 0, Math.PI * 2)
+            ctx.fillStyle = "#ff4757"
+            ctx.fill()
+            ctx.shadowBlur  = 0
+            ctx.shadowColor = "transparent"
+        }
+    }, [])
+
+    // ---------- game loop (requestAnimationFrame) ----------
+
+    useEffect(() => {
+        if (!ready) return
+
+        const grid = makeGrid()
+        gridRef.current = grid
+
+        const initSnake = makeSnake(grid)
+        snakeRef.current  = initSnake
+        appleRef.current  = spawnApple(initSnake, grid)
+        directionRef.current = "right"
+
+        // Resize canvas to match grid pixel size
+        const canvas = canvasRef.current
+        canvas.width  = grid.width  * CELL_SIZE
+        canvas.height = grid.height * CELL_SIZE
+
+        const MS_PER_TICK = 20   // game speed (ms between steps)
+        let lastTick = performance.now()
+        let rafId
+
+        const loop = (now) => {
+            rafId = requestAnimationFrame(loop)
+
+            if (now - lastTick >= MS_PER_TICK) {
+                lastTick = now
+
+                const snake = snakeRef.current
+                const apple = appleRef.current
+                const head  = snake[0]
+
+                const nextDir = getNextDirection(head, apple, snake, directionRef.current, grid)
+                directionRef.current = nextDir
+
+                const delta = { up: [0,-1], down: [0,1], left: [-1,0], right: [1,0] }[nextDir]
+                const newHead = [head[0] + delta[0], head[1] + delta[1]]
+
+                const hitWall = newHead[0] < PADDING || newHead[0] >= grid.width  - PADDING ||
+                                newHead[1] < PADDING || newHead[1] >= grid.height - PADDING
+                const hitSelf = snake.some(s => s[0] === newHead[0] && s[1] === newHead[1])
+
+                if (hitWall || hitSelf) {
+                    const fresh = makeSnake(grid)
+                    snakeRef.current     = fresh
+                    appleRef.current     = spawnApple(fresh, grid)
+                    directionRef.current = "right"
+                } else {
+                    const ateApple = newHead[0] === apple.x && newHead[1] === apple.y
+                    if (ateApple) {
+                        snakeRef.current = [newHead, ...snake]
+                        appleRef.current = spawnApple(snakeRef.current, grid)
+                    } else {
+                        snakeRef.current = [newHead, ...snake.slice(0, -1)]
+                    }
+                }
+            }
+
+            draw()
+        }
+
+        rafId = requestAnimationFrame(loop)
+        return () => cancelAnimationFrame(rafId)
+    }, [ready, makeGrid, makeSnake, spawnApple, getNextDirection, draw])
+
+    // Signal ready after mount
+    useEffect(() => {
+        setReady(true)
+    }, [])
+
     return (
         <div style={{
             position: "fixed",
@@ -210,64 +259,19 @@ function SnakeGame() {
             width: "100vw",
             height: "100vh",
             zIndex: 0,
-            overflow: "hidden"
+            overflow: "hidden",
+            filter: blurAmount > 0 ? `blur(${blurAmount}px)` : "none",
+            transition: "filter 0.1s ease-out"
         }}>
-            {/* Grid pattern background */}
-            <div
+            <canvas
+                ref={canvasRef}
                 style={{
-                    pointerEvents: "none",
                     position: "absolute",
                     top: 0,
                     left: 0,
-                    width: "100vw",
-                    height: "100vh",
-                    zIndex: 0,
-                    backgroundImage: `repeating-linear-gradient(
-                        to right,
-                        rgba(120, 180, 130, 0.08) 0,
-                        rgba(120, 180, 130, 0.08) 1px,
-                        transparent 1px,
-                        transparent ${CELL_SIZE}px
-                    ),
-                    repeating-linear-gradient(
-                        to bottom,
-                        rgba(120, 180, 130, 0.08) 0,
-                        rgba(120, 180, 130, 0.08) 1px,
-                        transparent 1px,
-                        transparent ${CELL_SIZE}px
-                    )`,
-                    backgroundColor: "transparent"
+                    display: "block"
                 }}
             />
-            {/* Render snake segments */}
-            {snake.map((segment, index) => (
-                <SnakeBody 
-                    key={index}
-                    x={segment[0] * CELL_SIZE}
-                    y={segment[1] * CELL_SIZE}
-                    size={CELL_SIZE}
-                    isNew={justGrew && index === snake.length - 1}
-                />
-            ))}
-            
-            {/* Render apple */}
-            {apple && (
-                <motion.div
-                    style={{
-                        position: "absolute",
-                        width: `${CELL_SIZE}px`,
-                        height: `${CELL_SIZE}px`,
-                        backgroundColor: "#ff4757",
-                        borderRadius: "50%",
-                        boxShadow: "0 0 10px rgba(255, 71, 87, 0.5)"
-                    }}
-                    animate={{
-                        x: apple.x * CELL_SIZE,
-                        y: apple.y * CELL_SIZE
-                    }}
-                    transition={{ duration: 0.2 }}
-                />
-            )}
         </div>
     )
 }
