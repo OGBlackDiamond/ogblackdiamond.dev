@@ -107,9 +107,21 @@ function SnakeGame() {
             return direction
         }
         
-        // Last resort: pick any valid move that doesn't collide
-        for (let move of validMoves) {
-            if (!isCollision(move.pos, bodyWithoutTail)) {
+        // Last resort: pick any possible move in any direction that doesn't collide
+        const allMoves = [
+            { dir: "up", pos: [head[0], head[1] - 1] },
+            { dir: "down", pos: [head[0], head[1] + 1] },
+            { dir: "left", pos: [head[0] - 1, head[1]] },
+            { dir: "right", pos: [head[0] + 1, head[1]] }
+        ]
+        for (let move of allMoves) {
+            const x = move.pos[0]
+            const y = move.pos[1]
+            if (
+                x >= PADDING && x < GRID_WIDTH - PADDING &&
+                y >= PADDING && y < GRID_HEIGHT - PADDING &&
+                !isCollision(move.pos, bodyWithoutTail)
+            ) {
                 return move.dir
             }
         }

@@ -1,36 +1,48 @@
 # Agent Guidelines for ogblackdiamond.dev
 
-This document provides coding agents with essential information about this React + Vite project.
+**CRITICAL: Do NOT run `npm run build` or `npm run deploy` until/unless the user explicitly requests it. Do not deploy or build automatically.**
 
-## Project Overview
+This document provides coding agents with essential information about the ogblackdiamond.dev homepage project.
 
-- **Type**: React 19 web application with Motion animations
-- **Build Tool**: Vite 7.1.2
-- **Language**: JavaScript (JSX)
+## Project Overview (2026)
+
+- **Purpose**: Single-page personal website (homepage) with animated snake game background
+- **Type**: React 19 web application with Motion animations and Vite
+- **Hosting**: GitHub Pages, deployed at root (https://ogblackdiamond.dev/ with custom domain)
+- **Build Tool**: Vite 7.1.2+
+- **Language**: JavaScript (JSX), no TypeScript
 - **Animation**: Motion 12.23.12 (successor to Framer Motion)
-- **Routing**: React Router DOM 7.8.2 (available but not currently used)
+- **No router in use**: Single static page only
 
 ## Commands
 
 ### Development
 ```bash
-npm run dev          # Start dev server (default: http://localhost:5173)
+npm run dev          # Start local dev server (default: http://localhost:5173)
 npm run build        # Production build (outputs to dist/)
 npm run preview      # Preview production build
 npm run lint         # Run ESLint on all JS/JSX files
 ```
 
-### Testing
-**No testing framework is currently configured.** Consider adding Vitest if tests are needed:
+### Deployment
 ```bash
-npm install -D vitest @testing-library/react @testing-library/jest-dom jsdom
+# Only run if the user requests to build/deploy
+npm run build      # Builds for production (use base: "/" for root deploy)
+npm run deploy     # Publishes /dist to GitHub Pages (gh-pages branch)
 ```
+- **NEVER run build or deploy automatically! Only do so when the user says so.**
 
-### Running Single Files
-For quick tests of individual components, you can:
-1. Import and render the component in `main.jsx`
-2. Use the dev server hot reload to see changes instantly
-3. No separate test runner is configured
+### Testing
+No automated testing framework is currently configured. You may suggest Vitest if end-to-end or component tests are ever requested.
+
+### Components & Logic
+- All code is in `/src/Components/` and `/src/main.jsx`
+- Homepage layout and main content in `HomePage.jsx`
+- Animated Snake background in `SnakeGame.jsx` and `SnakeBody.jsx`
+- Snake uses a greedy algorithm for apple finding, avoids self-collision when possible (improved 'survival' wiggle, not full A*)
+- Styling uses inline JS style and Motion for all visuals
+- No external CSS, all is inline
+- Subtle animated grid and glow effects are present in the snake background
 
 ## Code Style Guidelines
 

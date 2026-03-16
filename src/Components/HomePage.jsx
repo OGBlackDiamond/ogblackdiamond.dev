@@ -86,18 +86,17 @@ function HomePage() {
                         backdropFilter: "blur(10px)"
                     }}
                 >
-                    <p style={{
-                        fontSize: "1.1rem",
-                        lineHeight: "1.8",
-                        margin: "0",
-                        color: "#d0d0d0"
-                    }}>
-                        I'm a passionate developer who loves tinkering with systems and building cool projects. 
-                        My daily drivers include Fedora Linux, tiling window managers, and Neovim—yes, I'm becoming a wizard. 
-                        Java is my favorite language, but I'm most fluent in Python. I also work with C++, C#, and Lua, 
-                        and I'm currently diving into JavaScript, TypeScript, and Assembly. 
-                        I believe in using AI as a tool to enhance my workflow and create better code.
-                    </p>
+<p style={{
+    fontSize: "1.1rem",
+    lineHeight: "1.8",
+    margin: "0",
+    color: "#d0d0d0"
+}}>
+    I'm a passionate software developer who enjoys working with systems and building innovative projects.
+    My daily workflow includes Fedora Linux, tiling window managers, and Neovim.
+    Java is my favorite language, and I'm highly proficient in Python. I also have experience with C++, C#, and Lua,
+    and am currently expanding my knowledge in JavaScript, TypeScript, and Assembly.
+</p>
                 </motion.section>
                 
                 {/* Social Links */}
