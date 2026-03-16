@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 /* eslint-disable no-unused-vars */
 import { motion, AnimatePresence } from "motion/react"
 /* eslint-enable no-unused-vars */
@@ -7,16 +7,19 @@ import SnakeGame from "./SnakeGame.jsx"
 import TechStack from "./TechStack.jsx"
 
 function HomePage() {
-    const [blurAmount, setBlurAmount] = useState(0)
     const [scrolled, setScrolled] = useState(false)
+    const snakeWrapperRef = useRef(null)
 
     useEffect(() => {
         const handleScroll = () => {
             const scrollY = window.scrollY
             const viewportHeight = window.innerHeight
             const blur = Math.min(15, (scrollY / viewportHeight) * 15)
-            setBlurAmount(blur)
+            if (snakeWrapperRef.current) {
+                snakeWrapperRef.current.style.filter = blur > 0 ? `blur(${blur}px)` : "none"
+            }
             if (scrollY > 40) setScrolled(true)
+            else setScrolled(false)
         }
 
         window.addEventListener("scroll", handleScroll, { passive: true })
@@ -32,7 +35,7 @@ function HomePage() {
             fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif"
         }}>
             {/* Snake game background */}
-            <SnakeGame blurAmount={blurAmount} />
+            <SnakeGame wrapperRef={snakeWrapperRef} />
             
             {/* Content overlay */}
             <motion.div
@@ -108,12 +111,15 @@ function HomePage() {
     fontSize: "1.1rem",
     lineHeight: "1.8",
     margin: "0",
-    color: "#d0d0d0"
+    color: "#d0d0d0",
+    justifyContent: "center"
 }}>
-    I'm a passionate software developer who enjoys working with systems and building innovative projects.
-    My daily workflow includes Fedora Linux, tiling window managers, and Neovim.
-    Java is my favorite language, and I'm highly proficient in Python. I also have experience with C++, C#, and Lua,
-    and am currently expanding my knowledge in JavaScript, TypeScript, and Assembly.
+    I'm a passionate software engineer in my 1st year of college. I'm fluent in many languages but I specialize in Java and C/C++ specifically.
+    My experience ranges everywhere from Minecraft plugins to PCB design to graphics engines, but I specialize in real-world applications of programming. 
+    Namely robotics and control systems. Most notably I've worked on autonomous robot control software and flight path control and correction for amateur rocketry.
+    Watching software act on a real-world machine is a very rewarding feeling which is why I've continued to pursue it.
+    <br/> <br/>
+    <b>My goal is to one day develop software for groundbreaking robotics or aerospace applications where I can watch my software interact with the world around it.</b>
 </p>
                 </motion.section>
                 

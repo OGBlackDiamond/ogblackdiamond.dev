@@ -12,8 +12,8 @@ import {
     SiLua,
     SiJavascript,
     SiTypescript,
-    SiAssemblyscript,
-    SiZsh
+    SiZsh,
+    SiKicad
 } from "react-icons/si"
 import { FaDesktop, FaCode, FaTerminal, FaLayerGroup, FaJava, FaCat, FaGithub, FaTimes, FaExternalLinkAlt } from "react-icons/fa"
 
@@ -101,7 +101,7 @@ const languageProjects = {
             ]
         }
     ],
-    JavaScript: [
+    "JS / TS": [
         {
             name: "ogblackdiamond.dev",
             repo: "https://github.com/OGBlackDiamond/ogblackdiamond.dev",
@@ -114,31 +114,48 @@ const languageProjects = {
             ]
         }
     ],
-    TypeScript: [
-        {
-            name: "ogblackdiamond.dev",
-            repo: "https://github.com/OGBlackDiamond/ogblackdiamond.dev",
-            description: "This site is currently JavaScript, but TypeScript is next on the list as the codebase grows.",
-            highlights: [],
-            placeholder: true
-        }
-    ],
     "C#": [
         {
-            name: "No project yet",
-            repo: null,
-            description: "C# experience comes from game modding and Unity projects, but nothing public yet.",
-            highlights: [],
-            placeholder: true
+            name: "acm-jam-2025",
+            repo: "https://github.com/AdoHTQ/acm-jam-2025",
+            images: [
+                "https://github.com/user-attachments/assets/2e87ed73-bb3d-4563-9ff9-9037888eb499"
+            ],
+            description: "A driving game built in ~36 hours for the ACM game jam. You're driving home from the courthouse after being put on probation — one broken traffic law and you're immediately arrested and sent back to the start.",
+            highlights: [
+                "AI bot cars navigate an intersection graph (IntersectionNode) with randomized STRAIGHT/RIGHT intent chosen at spawn, accelerating via drag-based physics and halting on a stopGo flag controlled by intersection logic",
+                "Stop sign controller maintains a per-intersection Queue<Node3D> — bots dequeue one at a time on a timer, and the player is enqueued alongside them, enforcing strict arrival-order right-of-way",
+                "Blinker signal validation at intersections — dot-product comparison of the player's entry heading vs. exit heading detects turns and cross-checks whether the blinker was active, triggering arrest on a mismatch",
+                "Traffic law system covers stop signs, speed limits (SpeedLimitChange zones), construction zones, and a day/night cycle (DayCycle) — each implemented as independent scene-level triggers"
+            ]
         }
     ],
-    Assembly: [
+    KiCad: [
         {
-            name: "No project yet",
-            repo: null,
-            description: "Currently learning x86-64 Assembly. Projects coming soon.",
-            highlights: [],
-            placeholder: true
+            name: "Alaya-Vijnana",
+            repo: "https://github.com/OGBlackDiamond/Alaya-Vijnana",
+            images: [
+                "https://github.com/user-attachments/assets/2677d21a-3ee9-4ad6-96c5-749868745431",
+                "https://github.com/user-attachments/assets/218aecd2-2160-497e-be34-12245db2d657"
+            ],
+            description: "Custom split ortholinear column-staggered keyboard — fully designed from scratch in KiCad, from schematic to routed PCB.",
+            highlights: [
+                "Split layout with ortholinear column-stagger — key positions derived from finger reach measurements to minimize lateral finger travel",
+                "Full KiCad schematic capture and PCB layout — footprint assignment, ratsnest routing, and design-rule-checked gerber output for fabrication",
+                "QMK-compatible microcontroller integration — pin mapping and matrix wiring laid out for direct firmware compatibility",
+                "Hardware repository includes both the KiCad project files and the QMK firmware submodule for a single-repo build"
+            ]
+        },
+        {
+            name: "T.A.C.O.S",
+            repo: "https://github.com/UNR-Aerospace-Club/T.A.C.O.S",
+            description: "Total Avionics Control and Operations System — custom modular rocket avionics hardware and firmware for the UNR Aerospace Club, built around a central MainBoard with swappable PCB 'hat' modules.",
+            highlights: [
+                "Modular hat-based PCB architecture — each subsystem (LED arrays, sensors, telemetry) is a discrete PCB hat that plugs into the MainBoard, allowing independent swap and test",
+                "Hardware multiplexing via 3-bit binary GPIO select lines — 15 data pins + 5 select pins address all hats on a shared bus, avoiding per-hat wiring redundancy",
+                "KiCad schematics and layouts for MainBoard and all hat variants — full design rule checks and gerber output for each board in the stack",
+                "ESP32 Bluetooth Serial + SD_MMC (4-bit MMC bus) for real-time telemetry downlink and onboard flight data recording on a custom PCB layout"
+            ]
         }
     ]
 }
@@ -146,14 +163,13 @@ const languageProjects = {
 // ─── Language tab config ───────────────────────────────────────────────────────
 
 const languageTabs = [
-    { name: "Java",       icon: FaJava,          color: "#f89820" },
-    { name: "Python",     icon: SiPython,        color: "#3572A5" },
-    { name: "C++",        icon: SiCplusplus,     color: "#659ad2" },
-    { name: "Lua",        icon: SiLua,           color: "#000080" },
-    { name: "JavaScript", icon: SiJavascript,    color: "#F0DB4F" },
-    { name: "TypeScript", icon: SiTypescript,    color: "#3178c6" },
-    { name: "C#",         icon: SiSharp,         color: "#9b4f96" },
-    { name: "Assembly",   icon: SiAssemblyscript, color: "#a8a8a8" }
+    { name: "Java",       icon: FaJava,       color: "#f89820" },
+    { name: "Python",     icon: SiPython,     color: "#3572A5" },
+    { name: "C++",        icon: SiCplusplus,  color: "#659ad2" },
+    { name: "Lua",        icon: SiLua,        color: "#000080" },
+    { name: "JS / TS",    icons: [{ Icon: SiJavascript, color: "#F0DB4F" }, { Icon: SiTypescript, color: "#3178c6" }], color: "#F0DB4F" },
+    { name: "C#",         icon: SiSharp,      color: "#9b4f96" },
+    { name: "KiCad",      icon: SiKicad,      color: "#314CB0" },
 ]
 
 // ─── Other tech categories (non-languages) ─────────────────────────────────────
@@ -164,21 +180,21 @@ const otherCategories = [
         title: "Operating System",
         icon: FaDesktop,
         color: "#51A2DA",
-        items: [{ name: "Fedora Linux", icon: SiFedora }]
+        items: [{ name: "Fedora Linux", icon: SiFedora, url: "https://fedoraproject.org" }]
     },
     {
         id: "editor",
         title: "Editor",
         icon: FaCode,
         color: "#57A143",
-        items: [{ name: "Neovim", icon: SiNeovim }]
+        items: [{ name: "Neovim", icon: SiNeovim, url: "https://neovim.io" }]
     },
     {
         id: "wm",
         title: "Window Manager",
         icon: FaLayerGroup,
         color: "#00D4FF",
-        items: [{ name: "Hyprland", icon: SiHyprland }]
+        items: [{ name: "Hyprland", icon: SiHyprland, url: "https://hyprland.org" }]
     },
     {
         id: "terminal",
@@ -186,10 +202,11 @@ const otherCategories = [
         icon: FaTerminal,
         color: "#F28D1A",
         items: [
-            { name: "Kitty", icon: FaCat },
-            { name: "Zsh",   icon: SiZsh  }
+            { name: "Kitty", icon: FaCat, url: "https://sw.kovidgoyal.net/kitty" },
+            { name: "Zsh",   icon: SiZsh,  url: "https://www.zsh.org" }
         ]
-    }
+    },
+
 ]
 
 // ─── TechCard (flip card) ─────────────────────────────────────────────────────
@@ -221,13 +238,13 @@ function TechCard({ category, index }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: index * 0.08 }}
-            style={{
-                width: CARD_SIZE,
-                height: CARD_SIZE,
-                perspective: "800px",
-                cursor: "default",
-                flexShrink: 0
-            }}
+                style={{
+                    width: CARD_SIZE,
+                    height: CARD_SIZE,
+                    perspective: "800px",
+                    cursor: isHovered ? "pointer" : "default",
+                    flexShrink: 0
+                }}
         >
             {/* Inner — rotates on hover */}
             <motion.div
@@ -284,7 +301,7 @@ function TechCard({ category, index }) {
                     {category.items.map((item) => {
                         const ItemIcon = item.icon
                         const iconSize = category.items.length > 1 ? 36 : 64
-                        return (
+                        const inner = (
                             <div
                                 key={item.name}
                                 style={{
@@ -300,6 +317,17 @@ function TechCard({ category, index }) {
                                 </span>
                             </div>
                         )
+                        return item.url ? (
+                            <a
+                                key={item.name}
+                                href={item.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ textDecoration: "none", display: "flex", flexDirection: "column", alignItems: "center" }}
+                            >
+                                {inner}
+                            </a>
+                        ) : inner
                     })}
                 </div>
             </motion.div>
@@ -376,7 +404,9 @@ function LanguagesCard({ onOpen }) {
                     >
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                             {languageTabs.map((lang, index) => {
-                                const Icon = lang.icon
+                                const icons = lang.icons
+                                    ? lang.icons.map(e => typeof e === "object" && e.Icon ? e : { Icon: e, color: lang.color })
+                                    : [{ Icon: lang.icon, color: lang.color }]
                                 return (
                                     <motion.div
                                         key={lang.name}
@@ -394,7 +424,12 @@ function LanguagesCard({ onOpen }) {
                                             color: "#d0d0d0"
                                         }}
                                     >
-                                        <Icon size={14} color={lang.color} />
+                                        <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                                            {icons.map((entry, i) => {
+                                                const IconEl = entry.Icon
+                                                return <IconEl key={i} size={14} color={entry.color} />
+                                            })}
+                                        </span>
                                         {lang.name}
                                     </motion.div>
                                 )
@@ -495,7 +530,9 @@ function ProjectDrawer({ onClose }) {
                 flexShrink: 0
             }}>
                 {languageTabs.map((lang) => {
-                    const Icon = lang.icon
+                    const icons = lang.icons
+                        ? lang.icons.map(e => typeof e === "object" && e.Icon ? e : { Icon: e, color: lang.color })
+                        : [{ Icon: lang.icon, color: lang.color }]
                     const isActive = activeTab === lang.name
                     const hasProjects = !languageProjects[lang.name]?.[0]?.placeholder
                     return (
@@ -525,7 +562,12 @@ function ProjectDrawer({ onClose }) {
                                 opacity: hasProjects ? 1 : 0.5
                             }}
                         >
-                            <Icon size={14} />
+                            <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                                {icons.map((entry, i) => {
+                                    const IconEl = entry.Icon
+                                    return <IconEl key={i} size={14} color={isActive ? entry.color : undefined} />
+                                })}
+                            </span>
                             {lang.name}
                         </motion.button>
                     )

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 
-function SnakeGame({ blurAmount = 0 }) {
+function SnakeGame({ wrapperRef = null }) {
     const CELL_SIZE = 25
     const PADDING = 2
 
@@ -252,7 +252,7 @@ function SnakeGame({ blurAmount = 0 }) {
     }, [])
 
     return (
-        <div style={{
+        <div ref={wrapperRef} style={{
             position: "fixed",
             top: 0,
             left: 0,
@@ -260,8 +260,6 @@ function SnakeGame({ blurAmount = 0 }) {
             height: "100vh",
             zIndex: 0,
             overflow: "hidden",
-            filter: blurAmount > 0 ? `blur(${blurAmount}px)` : "none",
-            transition: "filter 0.1s ease-out"
         }}>
             <canvas
                 ref={canvasRef}
