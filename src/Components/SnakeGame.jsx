@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 
-function SnakeGame({ wrapperRef = null }) {
+function SnakeGame({ wrapperRef = null, scrolled = false }) {
     const CELL_SIZE = 25
     const PADDING = 2
 
@@ -9,12 +9,16 @@ function SnakeGame({ wrapperRef = null }) {
     // Use refs for all game state so the rAF loop always sees fresh values
     // without causing re-renders on every tick.
     const snakeRef = useRef(null)
-    const appleRef = useRef(null)
+    const applesRef = useRef([])
     const directionRef = useRef("right")
     const gridRef = useRef({ width: 0, height: 0 })
+    const scrolledRef = useRef(scrolled)
 
     // We still need a tiny bit of React state to trigger the initial mount draw
     const [ready, setReady] = useState(false)
+
+    // Mirror scrolled prop into a ref so event listeners always see the latest value
+    scrolledRef.current = scrolled
 
     // ---------- helpers ----------
 
@@ -25,7 +29,7 @@ function SnakeGame({ wrapperRef = null }) {
         }
     }, [])
 
-    const spawnApple = useCallback((currentSnake, grid) => {
+    const spawnApple = useCallback((currentSnake, currentApples, grid) => {
         const { width, height } = grid
         let pos
         do {
@@ -33,7 +37,10 @@ function SnakeGame({ wrapperRef = null }) {
                 x: Math.floor(Math.random() * (width - PADDING * 2)) + PADDING,
                 y: Math.floor(Math.random() * (height - PADDING * 2)) + PADDING
             }
-        } while (currentSnake.some(s => s[0] === pos.x && s[1] === pos.y))
+        } while (
+            currentSnake.some(s => s[0] === pos.x && s[1] === pos.y) ||
+            currentApples.some(a => a.x === pos.x && a.y === pos.y)
+        )
         return pos
     }, [])
 
@@ -49,7 +56,7 @@ function SnakeGame({ wrapperRef = null }) {
         ]
     }, [])
 
-    const getNextDirection = useCallback((head, apple, snake, currentDir, grid) => {
+    const getNextDirection = useCallback((head, apples, snake, currentDir, grid) => {
         const { width, height } = grid
         const moves = [
             { dir: "up",    pos: [head[0],     head[1] - 1] },
@@ -64,15 +71,26 @@ function SnakeGame({ wrapperRef = null }) {
 
         const noCollide = (pos) => !snake.some(s => s[0] === pos[0] && s[1] === pos[1])
 
-        const valid = moves
-            .filter(m => inBounds(m.pos) && noCollide(m.pos))
-            .map(m => ({
-                ...m,
-                dist: Math.abs(m.pos[0] - apple.x) + Math.abs(m.pos[1] - apple.y)
-            }))
-            .sort((a, b) => a.dist - b.dist)
+        // Target the nearest apple by Manhattan distance from the head
+        const target = apples.length > 0
+            ? apples.reduce((nearest, a) => {
+                const d = Math.abs(head[0] - a.x) + Math.abs(head[1] - a.y)
+                const nd = Math.abs(head[0] - nearest.x) + Math.abs(head[1] - nearest.y)
+                return d < nd ? a : nearest
+            })
+            : null
 
-        if (valid.length > 0) return valid[0].dir
+        if (target) {
+            const valid = moves
+                .filter(m => inBounds(m.pos) && noCollide(m.pos))
+                .map(m => ({
+                    ...m,
+                    dist: Math.abs(m.pos[0] - target.x) + Math.abs(m.pos[1] - target.y)
+                }))
+                .sort((a, b) => a.dist - b.dist)
+
+            if (valid.length > 0) return valid[0].dir
+        }
 
         // fallback: keep going if possible
         const ahead = {
@@ -95,7 +113,7 @@ function SnakeGame({ wrapperRef = null }) {
         if (!canvas) return
         const ctx = canvas.getContext("2d")
         const snake = snakeRef.current
-        const apple = appleRef.current
+        const apples = applesRef.current
         const { width, height } = gridRef.current
 
         const W = width  * CELL_SIZE
@@ -164,8 +182,8 @@ function SnakeGame({ wrapperRef = null }) {
             })
         }
 
-        // Apple
-        if (apple) {
+        // Apples
+        apples.forEach(apple => {
             const cx = apple.x * CELL_SIZE + CELL_SIZE / 2
             const cy = apple.y * CELL_SIZE + CELL_SIZE / 2
             const rad = CELL_SIZE * 0.42
@@ -178,7 +196,7 @@ function SnakeGame({ wrapperRef = null }) {
             ctx.fill()
             ctx.shadowBlur  = 0
             ctx.shadowColor = "transparent"
-        }
+        })
     }, [])
 
     // ---------- game loop (requestAnimationFrame) ----------
@@ -191,7 +209,7 @@ function SnakeGame({ wrapperRef = null }) {
 
         const initSnake = makeSnake(grid)
         snakeRef.current  = initSnake
-        appleRef.current  = spawnApple(initSnake, grid)
+        applesRef.current = [spawnApple(initSnake, [], grid)]
         directionRef.current = "right"
 
         // Resize canvas to match grid pixel size
@@ -209,11 +227,11 @@ function SnakeGame({ wrapperRef = null }) {
             if (now - lastTick >= MS_PER_TICK) {
                 lastTick = now
 
-                const snake = snakeRef.current
-                const apple = appleRef.current
-                const head  = snake[0]
+                const snake  = snakeRef.current
+                const apples = applesRef.current
+                const head   = snake[0]
 
-                const nextDir = getNextDirection(head, apple, snake, directionRef.current, grid)
+                const nextDir = getNextDirection(head, apples, snake, directionRef.current, grid)
                 directionRef.current = nextDir
 
                 const delta = { up: [0,-1], down: [0,1], left: [-1,0], right: [1,0] }[nextDir]
@@ -226,13 +244,14 @@ function SnakeGame({ wrapperRef = null }) {
                 if (hitWall || hitSelf) {
                     const fresh = makeSnake(grid)
                     snakeRef.current     = fresh
-                    appleRef.current     = spawnApple(fresh, grid)
+                    applesRef.current    = [spawnApple(fresh, [], grid)]
                     directionRef.current = "right"
                 } else {
-                    const ateApple = newHead[0] === apple.x && newHead[1] === apple.y
-                    if (ateApple) {
+                    const eatenIdx = apples.findIndex(a => newHead[0] === a.x && newHead[1] === a.y)
+                    if (eatenIdx !== -1) {
                         snakeRef.current = [newHead, ...snake]
-                        appleRef.current = spawnApple(snakeRef.current, grid)
+                        const remaining = apples.filter((_, i) => i !== eatenIdx)
+                        applesRef.current = [...remaining, spawnApple(snakeRef.current, remaining, grid)]
                     } else {
                         snakeRef.current = [newHead, ...snake.slice(0, -1)]
                     }
@@ -251,6 +270,38 @@ function SnakeGame({ wrapperRef = null }) {
         setReady(true)
     }, [])
 
+    // ---------- click-to-spawn apple ----------
+
+    useEffect(() => {
+        const handleClick = (e) => {
+            if (scrolledRef.current) return
+
+            const grid = gridRef.current
+            if (!grid.width || !grid.height) return
+
+            const gridX = Math.floor(e.clientX / CELL_SIZE)
+            const gridY = Math.floor(e.clientY / CELL_SIZE)
+
+            // Must be within padded bounds
+            if (
+                gridX < PADDING || gridX >= grid.width  - PADDING ||
+                gridY < PADDING || gridY >= grid.height - PADDING
+            ) return
+
+            const snake  = snakeRef.current  ?? []
+            const apples = applesRef.current ?? []
+
+            // Don't place on snake or existing apple
+            if (snake.some(s => s[0] === gridX && s[1] === gridY)) return
+            if (apples.some(a => a.x === gridX && a.y === gridY)) return
+
+            applesRef.current = [...apples, { x: gridX, y: gridY }]
+        }
+
+        window.addEventListener("click", handleClick)
+        return () => window.removeEventListener("click", handleClick)
+    }, [])
+
     return (
         <div ref={wrapperRef} style={{
             position: "fixed",
@@ -260,6 +311,7 @@ function SnakeGame({ wrapperRef = null }) {
             height: "100vh",
             zIndex: 0,
             overflow: "hidden",
+            cursor: scrolled ? "default" : "crosshair"
         }}>
             <canvas
                 ref={canvasRef}

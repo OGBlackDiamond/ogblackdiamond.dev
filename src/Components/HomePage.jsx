@@ -5,10 +5,24 @@ import { motion, AnimatePresence } from "motion/react"
 import { FaGithub, FaLinkedin, FaChevronDown } from "react-icons/fa"
 import SnakeGame from "./SnakeGame.jsx"
 import TechStack from "./TechStack.jsx"
+import VisitorInfo from "./VisitorInfo.jsx"
+
+const TAGLINE = "aspiring software engineer, godlike splatoon player"
+const TITLE_LETTERS = "BlackDiamond".split("")
 
 function HomePage() {
     const [scrolled, setScrolled] = useState(false)
+    const [typedCount, setTypedCount] = useState(0)
     const snakeWrapperRef = useRef(null)
+
+    // Typewriter: start after header entrance delay (0.3s entrance + 0.8s duration + stagger)
+    // Last letter stagger: 0.3 + (11 * 0.06) = ~0.96s, so start typing at ~1.3s
+    useEffect(() => {
+        if (typedCount >= TAGLINE.length) return
+        const delay = typedCount === 0 ? 1400 : 38
+        const timer = setTimeout(() => setTypedCount(c => c + 1), delay)
+        return () => clearTimeout(timer)
+    }, [typedCount])
 
     useEffect(() => {
         const handleScroll = () => {
@@ -35,7 +49,10 @@ function HomePage() {
             fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif"
         }}>
             {/* Snake game background */}
-            <SnakeGame wrapperRef={snakeWrapperRef} />
+            <SnakeGame wrapperRef={snakeWrapperRef} scrolled={scrolled} />
+
+            {/* Visitor info widget */}
+            <VisitorInfo />
             
             {/* Content overlay */}
             <motion.div
@@ -50,46 +67,74 @@ function HomePage() {
                     alignItems: "center",
                     justifyContent: "center",
                     minHeight: "100vh",
-                    padding: "40px 20px"
+                    padding: "40px 20px",
+                    pointerEvents: "none",
+                    userSelect: "none"
                 }}
             >
                 {/* Header */}
-                <motion.header
-                    initial={{ y: -20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3, duration: 0.8 }}
+                <header
                     style={{
                         textAlign: "center",
                         marginBottom: "60px"
                     }}
                 >
+                    {/* Staggered letter reveal for title */}
                     <h1 style={{
                         fontSize: "4rem",
                         fontWeight: "bold",
                         margin: "0 0 10px 0",
-                        background: "linear-gradient(135deg, #e8e8e8 0%, #a0a0a0 100%)",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        backgroundClip: "text",
-                        textShadow: "0 0 40px rgba(232, 232, 232, 0.1)"
+                        display: "inline-block"
                     }}>
-                        BlackDiamond
+                        {TITLE_LETTERS.map((letter, i) => (
+                            <motion.span
+                                key={i}
+                                initial={{ opacity: 0, y: -18 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 + i * 0.06, duration: 0.5, ease: "easeOut" }}
+                                style={{
+                                    display: "inline-block",
+                                    background: "linear-gradient(135deg, #e8e8e8 0%, #a0a0a0 100%)",
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                    backgroundClip: "text"
+                                }}
+                            >
+                                {letter}
+                            </motion.span>
+                        ))}
                     </h1>
-                    <p style={{
-                        fontSize: "1.5rem",
-                        color: "#a0a0a0",
-                        margin: "0 0 15px 0"
-                    }}>
+                    <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.9, duration: 0.6 }}
+                        style={{
+                            fontSize: "1.5rem",
+                            color: "#a0a0a0",
+                            margin: "0 0 15px 0"
+                        }}
+                    >
                         Caden
-                    </p>
+                    </motion.p>
+                    {/* Typewriter tagline */}
                     <p style={{
                         fontSize: "1.1rem",
                         fontStyle: "italic",
-                        color: "#a0a0a0"
+                        color: "#a0a0a0",
+                        minHeight: "1.6em"
                     }}>
-                        aspiring software engineer, godlike splatoon player
+                        {TAGLINE.slice(0, typedCount)}
+                        {typedCount < TAGLINE.length && (
+                            <motion.span
+                                animate={{ opacity: [1, 0] }}
+                                transition={{ duration: 0.6, repeat: Infinity, ease: "linear" }}
+                                style={{ display: "inline-block", marginLeft: "1px" }}
+                            >
+                                |
+                            </motion.span>
+                        )}
                     </p>
-                </motion.header>
+                </header>
                 
                 {/* Introduction */}
                 <motion.section
@@ -132,7 +177,8 @@ function HomePage() {
                         display: "flex",
                         gap: "40px",
                         justifyContent: "center",
-                        alignItems: "center"
+                        alignItems: "center",
+                        pointerEvents: "auto"
                     }}
                 >
                     {/* GitHub Link */}
