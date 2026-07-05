@@ -3,13 +3,14 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 /* eslint-enable no-unused-vars */
 import {
-    SiFedora,
+    SiArchlinux,
     SiNeovim,
     SiHyprland,
     SiPython,
     SiCplusplus,
     SiSharp,
     SiLua,
+    SiGo,
     SiJavascript,
     SiTypescript,
     SiZsh,
@@ -101,6 +102,22 @@ const languageProjects = {
             ]
         }
     ],
+    Go: [
+        {
+            name: "watchdog-chess",
+            repo: "https://github.com/OGBlackDiamond/watchdog-chess",
+            images: [
+                "https://github.com/user-attachments/assets/4113d6e8-3662-47b6-8798-48cb543669ca"
+            ],
+            description: "A Go chess engine with an Ebiten GUI where you play against Watchdog, a negamax/alpha-beta bot. The project separates the bitboard rules engine, search/evaluation bot, and root GUI package for rendering, input, and turn handling.",
+            highlights: [
+                "Bitboard-based rules engine handles legal move generation, check detection, castling, en passant, promotions, FEN loading, and fixed board orientation independent of GUI perspective",
+                "Watchdog bot uses negamax search with alpha-beta pruning, capture/promotion move ordering, material scoring, and piece-square evaluation tables at a default search depth of 7",
+                "Ebiten GUI supports drag-and-drop piece movement, legal move indicators, capture rings, last-move highlighting, board flipping via playAsWhite, and async bot thinking through a goroutine/result channel",
+                "Perft test suite validates move generation against published reference positions covering castling, pins, en passant, promotions, checkmates, plus deeper start-position testing up to 119M nodes"
+            ]
+        }
+    ],
     "JS / TS": [
         {
             name: "ogblackdiamond.dev",
@@ -167,6 +184,7 @@ const languageTabs = [
     { name: "Python",     icon: SiPython,     color: "#3572A5" },
     { name: "C++",        icon: SiCplusplus,  color: "#659ad2" },
     { name: "Lua",        icon: SiLua,        color: "#000080" },
+    { name: "Go",         icon: SiGo,         color: "#00ADD8" },
     { name: "JS / TS",    icons: [{ Icon: SiJavascript, color: "#F0DB4F" }, { Icon: SiTypescript, color: "#3178c6" }], color: "#F0DB4F" },
     { name: "C#",         icon: SiSharp,      color: "#9b4f96" },
     { name: "KiCad",      icon: SiKicad,      color: "#314CB0" },
@@ -179,8 +197,8 @@ const otherCategories = [
         id: "os",
         title: "Operating System",
         icon: FaDesktop,
-        color: "#51A2DA",
-        items: [{ name: "Fedora Linux", icon: SiFedora, url: "https://fedoraproject.org" }]
+        color: "#1793D1",
+        items: [{ name: "Arch Linux", icon: SiArchlinux, url: "https://archlinux.org" }]
     },
     {
         id: "editor",
